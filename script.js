@@ -8,13 +8,98 @@ const steps = [];
 
 const createColumns = (heights) => {
   heightContainer.innerHTML = ""; // Clear previous columns
-  heights.forEach((height) => {
+  const waterLevels = calculateWaterLevels(); // Get the water levels based on current heights
+
+  heights.forEach((height, index) => {
+    // Create column
     const column = document.createElement("div");
     column.classList.add("column");
     column.style.height = `${height * 20}px`; // Scale for visualization
     heightContainer.appendChild(column);
   });
+
+  // Create water levels based on steps
+  steps.forEach((step, index) => {
+    if (step.type === "water") {
+      step.stack.forEach((i) => {
+        if (waterLevels[i] > 0) {
+          const water = document.createElement("div");
+          water.classList.add("water");
+          water.style.height = `${waterLevels[i] * 20}px`; // Scale for visualization
+          water.style.position = "absolute"; // Set absolute positioning
+          water.style.bottom = `${heights[i] * 20}px`; // Position above the current column
+          water.style.left = `${i * 34}px`; // Center over the gap (30px width + 4px margin)
+          water.style.width = "30px"; // Match the column width
+          heightContainer.appendChild(water); // Append water to the height container
+        }
+      });
+    }
+  });
 };
+
+// Updated updateVisualization function
+const updateVisualization = () => {
+  if (steps.length === 0) return; // If there are no steps, return
+
+  const step = steps[currentStep]; // Get the current step
+  createColumns(heights); // Create or recreate the columns for the current heights
+
+  // Update the stack display
+  updateStackDisplay();
+
+  // Update the result display
+  resultDisplay.innerText = `Total Trapped Water so far: ${step.totalWater} units`;
+
+  // Optionally, indicate the step type (push, pop, or water calculation)
+  stepInfo.innerText = `Step ${currentStep + 1}: ${step.type}`;
+
+  // Create water visualization for current step
+  if (step.type === "water") {
+    step.stack.forEach((index) => {
+      if (heights[index] < step.totalWater) {
+        const water = document.createElement("div");
+        water.classList.add("water");
+        water.style.height = `${(step.totalWater - heights[index]) * 20}px`; // Scale for visualization
+        water.style.position = "absolute"; // Set absolute positioning
+        water.style.bottom = `${heights[index] * 20}px`; // Position above the current column
+        water.style.left = `${index * 34}px`; // Center over the gap (30px width + 4px margin)
+        water.style.width = "30px"; // Match the column width
+        heightContainer.appendChild(water); // Append water to the height container
+      }
+    });
+  }
+};
+
+
+// Function to calculate the water levels for visualization
+const calculateWaterLevels = () => {
+  const n = heights.length;
+  const waterLevels = Array(n).fill(0);
+  let leftMax = 0;
+  let rightMax = 0;
+  let left = 0;
+  let right = n - 1;
+
+  while (left <= right) {
+    if (heights[left] < heights[right]) {
+      if (heights[left] >= leftMax) {
+        leftMax = heights[left];
+      } else {
+        waterLevels[left] = leftMax - heights[left]; // Calculate trapped water
+      }
+      left++;
+    } else {
+      if (heights[right] >= rightMax) {
+        rightMax = heights[right];
+      } else {
+        waterLevels[right] = rightMax - heights[right]; // Calculate trapped water
+      }
+      right--;
+    }
+  }
+  return waterLevels;
+};
+
 
 class Stack {
   constructor() {
@@ -90,22 +175,6 @@ const updateStackDisplay = () => {
     item.style.height = `${heights[index] * 20}px`; // Scale for visualization
     stackDisplay.appendChild(item);
   });
-};
-
-const updateVisualization = () => {
-  if (steps.length === 0) return; // If there are no steps, return
-
-  const step = steps[currentStep]; // Get the current step
-  createColumns(heights);
-
-  // Update the stack display
-  updateStackDisplay();
-
-  // Update the result display
-  resultDisplay.innerText = `Total Trapped Water so far: ${step.totalWater} units`;
-
-  // Optionally, indicate the step type (push, pop, or water calculation)
-  stepInfo.innerText = `Step ${currentStep + 1}: ${step.type}`;
 };
 
 // Event listeners for input and buttons
